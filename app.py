@@ -35,29 +35,27 @@ if uploaded:
         st.info(f"Image Caption: {caption}")
 
     # ----------------------
-    # 2. Generate story (SIMPLE, SHORT PROMPT — NO MORE RAMBLING!)
+    # 2. Generate story (NO PROMPT!!! Only caption)
     # ----------------------
     with st.spinner("Writing story..."):
 
-        # ✅ YOUR FIX: Super simple prompt — model will NOT go off topic
-        prompt = f"Write a simple, happy 50-100 word story for kids: {caption}"
-
+        # ✅ NO PROMPT — ONLY use caption to make story
         story = story_generator(
-            prompt,
+            caption,
             max_new_tokens=80,
             temperature=0.6,
             repetition_penalty=1.2,
-            pad_token_id=50256,
-            do_sample=True
+            pad_token_id=50256
         )[0]["generated_text"]
 
-        story = story.replace(prompt, "").strip()
+        # Clean
+        story = story.replace(caption, "").strip()
 
-        # Ensure clean ending
+        # Ensure complete sentence
         if "." in story:
             story = story[:story.rfind(".") + 1]
 
-        # Keep 50–100 words
+        # Keep 50-100 words
         words = story.split()
         if len(words) > 100:
             story = " ".join(words[:100])
