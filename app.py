@@ -14,7 +14,7 @@ st.write("Upload an image, and I will make a lovely story for you!")
 @st.cache_resource
 def load_models():
     # 使用支持image-to-text的专用模型，或者用pipeline的正确参数
-    captioner = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
+    captioner = pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
     story_generator = pipeline("text-generation", model="distilgpt2", max_new_tokens=150)
     return captioner, story_generator
 
