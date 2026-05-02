@@ -83,7 +83,7 @@ st.markdown(
 def load_captioner():
     """Load the image-captioning pipeline from Hugging Face."""
     return pipeline(
-        "image-to-text",
+        "image-text-to-text",
         model="Salesforce/blip-image-captioning-base",
     )
 
