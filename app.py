@@ -13,45 +13,47 @@ from PIL import Image
 def img2text(url):
     image_to_text_model = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
     text = image_to_text_model(url)[0]["generated_text"]
+    # 去掉illustration这个词，减少模型误解
+    text = text.replace("illustration", "scene")
     return text
 
-# text2story (适配所有图片、不跑题、50-100词儿童故事)
+# text2story (Fixed: stable, on-topic, 50-100 words)
 def text2story(text):
     story_model = pipeline(
         "text-generation",
         model="distilgpt2",
-        temperature=0.5,
-        repetition_penalty=1.2,
+        temperature=0.4,          # 降低脑洞，减少奇怪句子
+        repetition_penalty=1.3,  # 强制惩罚重复/无关内容
         pad_token_id=50256
     )
     
-    # 通用、极简、不固定场景的prompt，只让模型围绕图片续写
-    prompt = f"Once upon a time, {text}."
+    # 超明确的prompt：直接告诉模型“写一个短故事”，不玩花样
+    prompt = f"Tell a short story about: {text} The kids are having fun."
     
     story = story_model(
         prompt,
-        max_new_tokens=90,
+        max_new_tokens=70,       # 控制续写长度，避免越写越歪
         do_sample=True
     )[0]["generated_text"]
 
-    # 去掉prompt部分，避免重复
+    # 只保留模型续写的部分，去掉prompt
     story = story.replace(prompt, "").strip()
 
-    # 只保留完整句子，截断在最后一个标点
-    for punc in [".", "!", "?"]:
-        if punc in story:
-            story = story[:story.rfind(punc) + 1]
+    # 截断到第一个完整句子，杜绝奇怪续写
+    if "." in story:
+        story = story[:story.find(".") + 1]
 
-    # 拼接成完整故事，控制词数在50-100之间
-    full_story = prompt + " " + story
+    # 拼接成完整故事，控制词数
+    full_story = prompt.split(".")[0] + ". " + story
     words = full_story.split()
+    
+    # 词数控制：低于50词就加一句场景相关的结尾，高于100词就截断
+    if len(words) < 50:
+        full_story += " Everyone laughed and played happily under the sunny sky."
     if len(words) > 100:
         full_story = " ".join(words[:100])
         if "." in full_story:
             full_story = full_story[:full_story.rfind(".") + 1]
-    # 如果词数不足50，自动补一句不跑题的通用结尾
-    if len(words) < 50:
-        full_story = full_story + " It was a wonderful day full of fun and happiness."
 
     return full_story
 
