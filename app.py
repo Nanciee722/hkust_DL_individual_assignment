@@ -45,18 +45,12 @@ if img:
     # Step 2: Generate story (fixed logic)
     with st.spinner("Writing story..."):
         # 更清晰的prompt，引导模型生成
-        prompt = f"Write a short, happy story for kids based on: {caption}. Keep it simple, 50-100 words."
+        prompt = f"Write a short story for kids based on: {caption}. Keep it simple, 50-100 words."
         outputs = story_generator(prompt, max_new_tokens=100, pad_token_id=50256)
         full_text = outputs[0]["generated_text"]
         
         # 提取生成的故事部分，避免prompt残留
         story = full_text.replace(prompt, "").strip()
-        
-        # 如果生成为空，用备用prompt重试
-        if len(story) < 20:
-            retry_prompt = f"Tell a simple story about this scene: {caption}."
-            retry_output = story_generator(retry_prompt, max_new_tokens=100, pad_token_id=50256)
-            story = retry_output[0]["generated_text"].replace(retry_prompt, "").strip()
 
         # 确保长度在50-100词之间
         words = story.split()
