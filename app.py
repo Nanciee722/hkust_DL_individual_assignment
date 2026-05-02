@@ -13,9 +13,10 @@ st.write("Upload an image, and I will make a lovely story for you!")
 # Load models (cache to avoid reloading)
 @st.cache_resource
 def load_models():
-    captioner = pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
-    story_gen = pipeline("text-generation", model="distilgpt2", max_new_tokens=150)
-    return captioner, story_gen
+    # 使用支持image-to-text的专用模型，或者用pipeline的正确参数
+    captioner = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
+    story_generator = pipeline("text-generation", model="distilgpt2", max_new_tokens=150)
+    return captioner, story_generator
 
 captioner, story_generator = load_models()
 
@@ -28,6 +29,7 @@ if img:
 
     # Step 1: Image caption
     with st.spinner("Analyzing picture..."):
+        # 正确调用方式：只传图片
         caption = captioner(image)[0]["generated_text"]
         st.info(f"Image caption: {caption}")
 
