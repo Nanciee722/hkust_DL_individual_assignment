@@ -17,7 +17,7 @@ def load_models():
     
     story_generator = pipeline(
         "text-generation", 
-        model="openai-community/gpt2"
+        model="alesforce/blip-image-captioning-base"
     )
     return captioner, story_generator
 
