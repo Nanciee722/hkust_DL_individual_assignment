@@ -81,7 +81,10 @@ st.markdown(
 
 @st.cache_resource(show_spinner="Loading image captioning model…")
 def load_captioner():
-    """Load the image-captioning pipeline from Hugging Face."""
+    """
+    Load the image-text-to-text pipeline using BLIP.
+    This task type correctly accepts a PIL Image in newer transformers versions.
+    """
     return pipeline(
         "image-text-to-text",
         model="Salesforce/blip-image-captioning-base",
@@ -90,10 +93,13 @@ def load_captioner():
 
 @st.cache_resource(show_spinner="Loading story generation model…")
 def load_story_generator():
-    """Load the text-generation pipeline from Hugging Face."""
+    """
+    Load the text-generation pipeline from Hugging Face.
+    Uses a lightweight GPT-2 variant suitable for Streamlit Cloud free tier.
+    """
     return pipeline(
         "text-generation",
-        model="sshleifer/tiny-gpt2",   # lightweight model suitable for Streamlit Cloud
+        model="sshleifer/tiny-gpt2",
     )
 
 
@@ -103,16 +109,16 @@ def load_story_generator():
 
 def generate_caption(image: Image.Image, captioner) -> str:
     """
-    Generate a short caption from the uploaded image.
+    Generate a short descriptive caption from an uploaded image.
 
     Args:
-        image: PIL Image object uploaded by the user.
-        captioner: Hugging Face image-to-text pipeline.
+        image:     PIL Image object uploaded by the user.
+        captioner: Hugging Face image-text-to-text pipeline.
 
     Returns:
-        A short descriptive caption string.
+        A short caption string describing the image.
     """
-    results = captioner(image)
+    results = captioner(image, generate_kwargs={"max_new_tokens": 50})
     caption = results[0]["generated_text"]
     return caption
 
@@ -122,7 +128,7 @@ def generate_story(caption: str, story_generator) -> str:
     Expand a caption into a short, child-friendly story (50-100 words).
 
     Args:
-        caption: The image caption produced by the captioning model.
+        caption:         Image caption produced by generate_caption().
         story_generator: Hugging Face text-generation pipeline.
 
     Returns:
@@ -148,16 +154,20 @@ def generate_story(caption: str, story_generator) -> str:
     full_text: str = output[0]["generated_text"]
     story = full_text[len(prompt):].strip()
 
-    # Fallback: if the model returns nothing useful, use the prompt itself
+    # Fallback: if the model returns nothing useful, craft a simple story
     if not story:
-        story = f"Once upon a time, {caption}. It was a wonderful adventure full of joy and laughter!"
+        story = (
+            f"Once upon a time, {caption}. "
+            "It was a wonderful adventure full of joy and laughter! "
+            "All the friends played together and lived happily ever after. The End."
+        )
 
     return story
 
 
 def text_to_speech(text: str) -> str:
     """
-    Convert text to an MP3 audio file using gTTS.
+    Convert story text to an MP3 audio file using gTTS.
 
     Args:
         text: The story text to synthesise.
@@ -219,7 +229,7 @@ def main():
             with open(audio_path, "rb") as audio_file:
                 st.audio(audio_file.read(), format="audio/mp3")
 
-            # Clean up temp file
+            # Clean up temporary audio file
             os.unlink(audio_path)
 
     # Footer
