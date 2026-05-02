@@ -1,7 +1,9 @@
 streamlit
-transformers>=4.40.0
+transformers
 torch
 torchvision
 pillow
 gTTS
 accelerate
+sentencepiece
+protobuf
