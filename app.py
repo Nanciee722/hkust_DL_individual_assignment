@@ -48,7 +48,7 @@ if img:
         story = full_text.replace(prompt, "").strip()
         
         if len(story) < 20:
-            retry_prompt = f"Tell a simple story about this scene: {caption}."
+            retry_prompt = f"Tell a simple, and happy story about this scene: {caption}."
             retry_output = story_generator(retry_prompt, max_new_tokens=100, pad_token_id=50256)
             story = retry_output[0]["generated_text"].replace(retry_prompt, "").strip()
 
