@@ -10,6 +10,7 @@ from transformers import pipeline
 from gtts import gTTS
 import tempfile
 import os
+import requests
 
 
 # ──────────────────────────────────────────────
@@ -28,46 +29,20 @@ st.markdown(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
-
-    html, body, [class*="css"] {
-        font-family: 'Nunito', sans-serif;
-        background-color: #FFF9F0;
-    }
-    h1 {
-        font-family: 'Fredoka One', cursive;
-        color: #FF6B6B;
-        text-align: center;
-        font-size: 3rem !important;
-    }
-    .subtitle {
-        text-align: center;
-        color: #6C63FF;
-        font-size: 1.2rem;
-        margin-bottom: 2rem;
-    }
+    html, body, [class*="css"] { font-family: 'Nunito', sans-serif; background-color: #FFF9F0; }
+    h1 { font-family: 'Fredoka One', cursive; color: #FF6B6B; text-align: center; font-size: 3rem !important; }
+    .subtitle { text-align: center; color: #6C63FF; font-size: 1.2rem; margin-bottom: 2rem; }
     .story-box {
         background: linear-gradient(135deg, #FFE0EC, #E0F0FF);
-        border-radius: 20px;
-        padding: 1.5rem 2rem;
-        font-size: 1.15rem;
-        line-height: 1.8;
-        color: #333;
-        border: 3px solid #FFB6C1;
-        margin-top: 1rem;
+        border-radius: 20px; padding: 1.5rem 2rem;
+        font-size: 1.15rem; line-height: 1.8; color: #333;
+        border: 3px solid #FFB6C1; margin-top: 1rem;
     }
     .stButton > button {
         background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-        color: white;
-        font-family: 'Fredoka One', cursive;
-        font-size: 1.2rem;
-        border-radius: 50px;
-        border: none;
-        padding: 0.6rem 2rem;
-        width: 100%;
-    }
-    .stButton > button:hover {
-        background: linear-gradient(135deg, #FF8E53, #FF6B6B);
-        transform: scale(1.02);
+        color: white; font-family: 'Fredoka One', cursive;
+        font-size: 1.2rem; border-radius: 50px; border: none;
+        padding: 0.6rem 2rem; width: 100%;
     }
     </style>
     """,
@@ -76,29 +51,18 @@ st.markdown(
 
 
 # ──────────────────────────────────────────────
-# Model loading (cached so it only loads once)
+# Model loading — only ONE local model (captioner)
 # ──────────────────────────────────────────────
 
 @st.cache_resource(show_spinner="Loading image captioning model…")
 def load_captioner():
     """
-    Load the image-to-text pipeline using BLIP.
+    Load only the BLIP image-to-text pipeline locally.
+    Keeping just one model reduces memory usage on Streamlit Cloud free tier.
     """
     return pipeline(
         "image-to-text",
         model="Salesforce/blip-image-captioning-base",
-    )
-
-
-@st.cache_resource(show_spinner="Loading story generation model…")
-def load_story_generator():
-    """
-    Load the text-generation pipeline from Hugging Face.
-    Uses a lightweight GPT-2 variant suitable for Streamlit Cloud free tier.
-    """
-    return pipeline(
-        "text-generation",
-        model="sshleifer/tiny-gpt2",
     )
 
 
@@ -108,59 +72,39 @@ def load_story_generator():
 
 def generate_caption(image: Image.Image, captioner) -> str:
     """
-    Generate a short descriptive caption from an uploaded image.
+    Generate a short descriptive caption from the uploaded image.
 
     Args:
-        image:     PIL Image object uploaded by the user.
+        image:     PIL Image uploaded by the user.
         captioner: Hugging Face image-to-text pipeline.
 
     Returns:
-        A short caption string describing the image.
+        Caption string.
     """
     results = captioner(image)
-    caption = results[0]["generated_text"]
-    return caption
+    return results[0]["generated_text"]
 
 
-def generate_story(caption: str, story_generator) -> str:
+def generate_story(caption: str) -> str:
     """
-    Expand a caption into a short, child-friendly story (50-100 words).
+    Expand the caption into a child-friendly story using a simple template.
+    No second model is loaded — avoids OOM crash on Streamlit Cloud free tier.
 
     Args:
-        caption:         Image caption produced by generate_caption().
-        story_generator: Hugging Face text-generation pipeline.
+        caption: Image caption from generate_caption().
 
     Returns:
-        A generated story string.
+        A short story string (50-100 words).
     """
-    prompt = (
-        f"Write a fun and magical short story for young children (aged 3 to 10) "
-        f"based on the following scene: {caption}. "
-        f"The story should be simple, cheerful, and between 50 and 100 words."
+    story = (
+        f"Once upon a time, there was {caption}. "
+        "It was a bright and sunny day, and everyone was feeling happy. "
+        "The little friends decided to go on a magical adventure together. "
+        "They skipped through the flowers, laughed under the rainbow, "
+        "and discovered a treasure chest full of yummy cookies! "
+        "At the end of the day, they hugged each other and went home. "
+        "And they all lived happily ever after. The End! 🌈"
     )
-
-    output = story_generator(
-        prompt,
-        max_new_tokens=120,
-        num_return_sequences=1,
-        do_sample=True,
-        temperature=0.85,
-        top_p=0.92,
-        repetition_penalty=1.3,
-    )
-
-    # Extract only the newly generated text (strip the original prompt)
-    full_text: str = output[0]["generated_text"]
-    story = full_text[len(prompt):].strip()
-
-    # Fallback: if the model returns nothing useful, craft a simple story
-    if not story:
-        story = (
-            f"Once upon a time, {caption}. "
-            "It was a wonderful adventure full of joy and laughter! "
-            "All the friends played together and lived happily ever after. The End."
-        )
-
     return story
 
 
@@ -169,7 +113,7 @@ def text_to_speech(text: str) -> str:
     Convert story text to an MP3 audio file using gTTS.
 
     Args:
-        text: The story text to synthesise.
+        text: Story text to synthesise.
 
     Returns:
         File path of the generated temporary MP3 file.
@@ -185,18 +129,14 @@ def text_to_speech(text: str) -> str:
 # ──────────────────────────────────────────────
 
 def main():
-    # Title and subtitle
     st.markdown("<h1>✨ Magic Story Time! 📖</h1>", unsafe_allow_html=True)
     st.markdown(
         '<p class="subtitle">Upload a picture and listen to your very own magical story! 🌈🦄</p>',
         unsafe_allow_html=True,
     )
 
-    # Load models
     captioner = load_captioner()
-    story_generator = load_story_generator()
 
-    # File uploader
     uploaded_file = st.file_uploader(
         "📷 Upload your picture here!",
         type=["jpg", "jpeg", "png", "webp"],
@@ -215,7 +155,7 @@ def main():
 
             # Step 2 – story
             with st.spinner("✍️ Writing your magical story…"):
-                story = generate_story(caption, story_generator)
+                story = generate_story(caption)
 
             st.markdown("### 📖 Your Story")
             st.markdown(f'<div class="story-box">{story}</div>', unsafe_allow_html=True)
@@ -228,10 +168,8 @@ def main():
             with open(audio_path, "rb") as audio_file:
                 st.audio(audio_file.read(), format="audio/mp3")
 
-            # Clean up temporary audio file
             os.unlink(audio_path)
 
-    # Footer
     st.markdown("---")
     st.markdown(
         "<p style='text-align:center; color:#aaa; font-size:0.85rem;'>"
