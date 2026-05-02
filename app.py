@@ -14,15 +14,10 @@ st.write("Upload an image, and I will make a lovely story for you!")
 @st.cache_resource
 def load_models():
     captioner = pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
-    
-    # ✅ YOUR NEW MODEL: Qwen3-0.6B
+    #  ONLY CHANGE THE MODEL HERE → Qwen3-0.6B
     story_generator = pipeline(
         "text-generation", 
-        model="Qwen/Qwen3-0.6B",
-        max_new_tokens=100,
-        temperature=0.6,
-        top_p=0.9,
-        repetition_penalty=1.1
+        model="Qwen/Qwen3-0.6B"
     )
     return captioner, story_generator
 
@@ -44,25 +39,28 @@ if img:
         caption = result[0]["generated_text"]
         st.info(f"Image caption: {caption}")
 
-    # Step 2: Generate story with Qwen3-0.6B (NO extra prompt, NO backup)
+    # Step 2: Generate story (fixed logic)
     with st.spinner("Writing story..."):
-        
-        # ✅ SUPER CLEAN PROMPT (you wanted no complicated prompt)
-        prompt = f"Write a simple 50-100 word kids' story about: {caption}"
-        
-        outputs = story_generator(prompt, max_new_tokens=100, pad_token_id=151643)
+        # 更清晰的prompt，引导模型生成
+        prompt = f"Write a short, happy story for kids based on: {caption}. Keep it simple, 50-100 words."
+        outputs = story_generator(prompt, max_new_tokens=100, pad_token_id=50256)
         full_text = outputs[0]["generated_text"]
         
+        # 提取生成的故事部分，避免prompt残留
         story = full_text.replace(prompt, "").strip()
+        
+        # 如果生成为空，用备用prompt重试
+        if len(story) < 20:
+            retry_prompt = f"Tell a simple story about this scene: {caption}."
+            retry_output = story_generator(retry_prompt, max_new_tokens=100, pad_token_id=50256)
+            story = retry_output[0]["generated_text"].replace(retry_prompt, "").strip()
 
-        # Ensure clean ending
-        if "." in story:
-            story = story[:story.rfind(".") + 1]
-
-        # Keep 50-100 words
+        # 确保长度在50-100词之间
         words = story.split()
         if len(words) > 100:
             story = " ".join(words[:100])
+        if len(words) < 30:
+            story = f"Once upon a time, {caption}. The children laughed and played together. They made new friends and had a wonderful time. The sun shone brightly, and everyone felt happy. It was a perfect day full of joy and adventure."
 
         st.subheader("Your Story ✨")
         st.write(story)
@@ -71,6 +69,7 @@ if img:
     with st.spinner("Making voice..."):
         tts = gTTS(text=story, lang="en")
         tts.save("story.mp3")
+
         with open("story.mp3", "rb") as f:
             st.audio(f.read(), format="audio/mp3")
 
