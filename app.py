@@ -14,10 +14,11 @@ st.write("Upload an image, and I will make a lovely story for you!")
 @st.cache_resource
 def load_models():
     captioner = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
-    
     story_generator = pipeline(
         "text-generation", 
-        model="openai-community/gpt2"
+        model="openai-community/gpt2",
+        temperature=0.5,
+        repetition_penalty=1.2
     )
     return captioner, story_generator
 
@@ -36,27 +37,31 @@ if img:
         caption = result[0]["generated_text"]
         st.info(f"Image caption: {caption}")
 
-    # Step 2: Generate story (FIXED PROMPT!!!)
+    # Step 2: Generate story
     with st.spinner("Writing story..."):
+        # 极简指令，GPT2 能听懂不跑偏
+        prompt = f"Once upon a time, {caption}"
         
-        # ✅✅✅ 只有这里改了！超级简单，不重复！✅✅✅
-        prompt = f"Tell a short, fun kids story about {caption}"
-        
-        outputs = story_generator(prompt, max_new_tokens=70, pad_token_id=50256, temperature=0.6)
+        outputs = story_generator(
+            prompt,
+            max_new_tokens=60,
+            pad_token_id=50256,
+            do_sample=True
+        )
         full_text = outputs[0]["generated_text"]
         
         story = full_text.replace(prompt, "").strip()
-
-        # 自动完整句子
+        
+        # 截断到第一个完整句号，杜绝无限重复
         if "." in story:
-            story = story[:story.rfind(".") + 1]
+            story = story[:story.find(".") + 1]
 
         st.subheader("Your Story ✨")
-        st.write(story)
+        st.write(prompt + story)
 
     # Step 3: Text to speech
     with st.spinner("Making voice..."):
-        tts = gTTS(text=story, lang="en")
+        tts = gTTS(text=prompt + story, lang="en")
         tts.save("story.mp3")
 
         with open("story.mp3", "rb") as f:
