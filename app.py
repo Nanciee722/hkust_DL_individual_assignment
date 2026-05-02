@@ -5,74 +5,83 @@ from transformers import pipeline
 from gtts import gTTS
 from PIL import Image
 
-# Page config
-st.set_page_config(page_title="Kids Story App", page_icon="📖")
-st.title("📖 Image Storytelling for Kids")
-st.write("Upload an image, and I will make a lovely story for you!")
+# --------------------------
+# function part
+# --------------------------
 
-# Load models (cache to avoid reloading)
-@st.cache_resource
-def load_models():
-    # Keep your original image-to-text + teacher model
-    captioner = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
-    # Upgrade to gpt2-medium (much better for kids story)
-    story_generator = pipeline(
-        "text-generation", 
+# img2text
+def img2text(url):
+    image_to_text_model = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
+    text = image_to_text_model(url)[0]["generated_text"]
+    return text
+
+# text2story (BETTER MODEL: gpt2-medium, 50-100 words)
+def text2story(text):
+    story_model = pipeline(
+        "text-generation",
         model="gpt2-medium",
         temperature=0.6,
-        repetition_penalty=1.1
+        repetition_penalty=1.1,
+        pad_token_id=50256
     )
-    return captioner, story_generator
+    
+    prompt = f"Once upon a time, {text}."
+    
+    story = story_model(
+        prompt,
+        max_new_tokens=120,
+        do_sample=True
+    )[0]["generated_text"]
 
-captioner, story_generator = load_models()
+    # Clean story to end at a complete sentence
+    for punc in [".", "!", "?"]:
+        if punc in story:
+            story = story[:story.rfind(punc) + 1]
 
-# Upload image
-img = st.file_uploader("Upload your image", type=["jpg", "jpeg", "png"])
+    # Keep 50-100 words
+    words = story.split()
+    if len(words) > 100:
+        story = " ".join(words[:100])
+        if "." in story:
+            story = story[:story.rfind(".") + 1]
+    
+    return story
 
-if img:
-    image = Image.open(img)
-    st.image(image, caption="Your picture", use_column_width=True)
+# text2audio
+def text2audio(story_text):
+    tts = gTTS(text=story_text, lang="en")
+    tts.save("story.mp3")
+    
+    with open("story.mp3", "rb") as f:
+        audio_data = f.read()
+    
+    return audio_data
 
-    # Step 1: Image caption
-    with st.spinner("Analyzing picture..."):
-        result = captioner(image)
-        caption = result[0]["generated_text"]
-        st.info(f"Image caption: {caption}")
+# --------------------------
+# main part
+# --------------------------
+st.set_page_config(page_title="Kids Story App", page_icon="📖")
+st.title("📖 Image Storytelling for Kids")
+st.write("Upload an image to generate a fun story!")
 
-    # Step 2: Generate 50-100 words kids story
-    with st.spinner("Writing story..."):
-        # Simple clean prompt that model understands
-        prompt = f"Once upon a time, {caption}."
+uploaded_img = st.file_uploader("Upload your image", type=["jpg", "jpeg", "png"])
 
-        outputs = story_generator(
-            prompt,
-            max_new_tokens=130,
-            pad_token_id=50256,
-            do_sample=True
-        )
-        full_text = outputs[0]["generated_text"]
+if uploaded_img is not None:
+    image = Image.open(uploaded_img)
+    st.image(image, caption="Your Image", use_column_width=True)
 
-        # Cut off at the last complete sentence
-        for punc in [".", "!", "?"]:
-            if punc in full_text:
-                full_text = full_text[:full_text.rfind(punc) + 1]
+    # Run functions
+    with st.spinner("Generating caption..."):
+        caption = img2text(image)
+        st.info(f"Image Caption: {caption}")
 
-        # Control word count between 50-100
-        words = full_text.split()
-        if len(words) > 100:
-            full_text = " ".join(words[:100])
-        if len(words) < 50:
-            pass
-
+    with st.spinner("Generating story..."):
+        story = text2story(caption)
         st.subheader("Your Story ✨")
-        st.write(full_text)
+        st.write(story)
 
-    # Step 3: Text to speech
-    with st.spinner("Making voice..."):
-        tts = gTTS(text=full_text, lang="en")
-        tts.save("story.mp3")
+    with st.spinner("Generating audio..."):
+        audio = text2audio(story)
+        st.audio(audio, format="audio/mp3")
 
-        with open("story.mp3", "rb") as f:
-            st.audio(f.read(), format="audio/mp3")
-
-    st.success("Done! Hope you like the story 😊")
+    st.success("All done! 🎉")
