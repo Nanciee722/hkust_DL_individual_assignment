@@ -13,9 +13,15 @@ st.write("Upload an image, and I will make a lovely story for you!")
 # Load models (cache to avoid reloading)
 @st.cache_resource
 def load_models():
-    # 正确使用image-text-to-text pipeline
     captioner = pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
-    story_generator = pipeline("text-generation", model="distilgpt2", max_new_tokens=150)
+    # 调整文本生成模型参数，确保生成有效内容
+    story_generator = pipeline(
+        "text-generation", 
+        model="distilgpt2", 
+        max_new_tokens=100,
+        temperature=0.7,
+        top_p=0.9
+    )
     return captioner, story_generator
 
 captioner, story_generator = load_models()
@@ -29,7 +35,6 @@ if img:
 
     # Step 1: Image caption
     with st.spinner("Analyzing picture..."):
-        # 关键：必须同时传text和images
         result = captioner(
             text="a picture of",
             images=image
@@ -37,18 +42,28 @@ if img:
         caption = result[0]["generated_text"]
         st.info(f"Image caption: {caption}")
 
-    # Step 2: Generate story (50–100 words, kid-friendly)
+    # Step 2: Generate story (fixed logic)
     with st.spinner("Writing story..."):
-        prompt = f"Write a short, sweet, simple story for young kids based on this: {caption}. Keep it 50-100 words, happy and easy."
-        story = story_generator(prompt)[0]["generated_text"]
-        story = story.replace(prompt, "").strip()
+        # 更清晰的prompt，引导模型生成
+        prompt = f"Write a short, happy story for kids based on: {caption}. Keep it simple, 50-100 words."
+        outputs = story_generator(prompt, max_new_tokens=100, pad_token_id=50256)
+        full_text = outputs[0]["generated_text"]
+        
+        # 提取生成的故事部分，避免prompt残留
+        story = full_text.replace(prompt, "").strip()
+        
+        # 如果生成为空，用备用prompt重试
+        if len(story) < 20:
+            retry_prompt = f"Tell a simple story about this scene: {caption}."
+            retry_output = story_generator(retry_prompt, max_new_tokens=100, pad_token_id=50256)
+            story = retry_output[0]["generated_text"].replace(retry_prompt, "").strip()
 
-        # Ensure length 50–100 words
+        # 确保长度在50-100词之间
         words = story.split()
         if len(words) > 100:
             story = " ".join(words[:100])
         if len(words) < 30:
-            story += " The little friends played happily all day. It was a warm and wonderful day full of fun."
+            story = f"Once upon a time, {caption}. The children laughed and played together. They made new friends and had a wonderful time. The sun shone brightly, and everyone felt happy. It was a perfect day full of joy and adventure."
 
         st.subheader("Your Story ✨")
         st.write(story)
