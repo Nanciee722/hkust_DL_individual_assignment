@@ -118,7 +118,7 @@ def generate_caption(image: Image.Image, captioner) -> str:
     Returns:
         A short caption string describing the image.
     """
-    results = captioner(image, generate_kwargs={"max_new_tokens": 50})
+    results = captioner({"image": image, "text": "Describe this image:"}, generate_kwargs={"max_new_tokens": 50})
     caption = results[0]["generated_text"]
     return caption
 
