@@ -14,7 +14,7 @@ st.write("Upload an image, and I will make a lovely story for you!")
 @st.cache_resource
 def load_models():
     captioner = pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
-    # 只改这里 → 换成 gpt2 原版模型
+    
     story_generator = pipeline(
         "text-generation", 
         model="openai-community/gpt2"
@@ -39,23 +39,19 @@ if img:
         caption = result[0]["generated_text"]
         st.info(f"Image caption: {caption}")
 
-    # Step 2: Generate story (fixed logic)
+    # Step 2: Generate story
     with st.spinner("Writing story..."):
-        # 更清晰的prompt，引导模型生成
         prompt = f"Write a short, happy story for kids based on: {caption}. Keep it simple, 50-100 words."
         outputs = story_generator(prompt, max_new_tokens=100, pad_token_id=50256)
         full_text = outputs[0]["generated_text"]
         
-        # 提取生成的故事部分，避免prompt残留
         story = full_text.replace(prompt, "").strip()
         
-        # 如果生成为空，用备用prompt重试
         if len(story) < 20:
             retry_prompt = f"Tell a simple story about this scene: {caption}."
             retry_output = story_generator(retry_prompt, max_new_tokens=100, pad_token_id=50256)
             story = retry_output[0]["generated_text"].replace(retry_prompt, "").strip()
 
-        # 确保长度在50-100词之间
         words = story.split()
         if len(words) > 100:
             story = " ".join(words[:100])
