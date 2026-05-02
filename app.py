@@ -17,7 +17,7 @@ def load_models():
     
     story_generator = pipeline(
         "text-generation", 
-        model="pranavpsv/genre-story-generator-v2"
+        model="openai-community/gpt2"
     )
     return captioner, story_generator
 
