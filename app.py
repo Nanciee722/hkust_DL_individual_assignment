@@ -17,7 +17,7 @@ def load_models():
     
     story_generator = pipeline(
         "text-generation", 
-        model="alesforce/blip-image-captioning-base"
+        model="pranavpsv/genre-story-generator-v2"
     )
     return captioner, story_generator
 
