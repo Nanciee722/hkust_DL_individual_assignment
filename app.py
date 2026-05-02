@@ -14,10 +14,10 @@ st.write("Upload an image, and I will make a lovely story for you!")
 @st.cache_resource
 def load_models():
     captioner = pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
-    #  ONLY CHANGE THE MODEL HERE → Qwen3-0.6B
+    # 只改这里 → 换成 gpt2 原版模型
     story_generator = pipeline(
         "text-generation", 
-        model="Qwen/Qwen3-0.6B"
+        model="openai-community/gpt2"
     )
     return captioner, story_generator
 
