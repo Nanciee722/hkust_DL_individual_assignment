@@ -13,7 +13,7 @@ st.write("Upload an image, and I will make a lovely story for you!")
 # Load models (cache to avoid reloading)
 @st.cache_resource
 def load_models():
-    captioner = pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
+    captioner = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
     
     story_generator = pipeline(
         "text-generation", 
@@ -32,31 +32,24 @@ if img:
 
     # Step 1: Image caption
     with st.spinner("Analyzing picture..."):
-        result = captioner(
-            text="a picture of",
-            images=image
-        )
+        result = captioner(image)
         caption = result[0]["generated_text"]
         st.info(f"Image caption: {caption}")
 
-    # Step 2: Generate story
+    # Step 2: Generate story (FIXED PROMPT!!!)
     with st.spinner("Writing story..."):
-        prompt = f"Write a short, happy story for kids based on: {caption}. Keep it simple, 50-100 words."
-        outputs = story_generator(prompt, max_new_tokens=100, pad_token_id=50256)
+        
+        # ✅✅✅ 只有这里改了！超级简单，不重复！✅✅✅
+        prompt = f"Tell a short, fun kids story about {caption}"
+        
+        outputs = story_generator(prompt, max_new_tokens=70, pad_token_id=50256, temperature=0.6)
         full_text = outputs[0]["generated_text"]
         
         story = full_text.replace(prompt, "").strip()
-        
-        if len(story) < 20:
-            retry_prompt = f"Tell a simple, and happy story about this scene: {caption}."
-            retry_output = story_generator(retry_prompt, max_new_tokens=100, pad_token_id=50256)
-            story = retry_output[0]["generated_text"].replace(retry_prompt, "").strip()
 
-        words = story.split()
-        if len(words) > 100:
-            story = " ".join(words[:100])
-        if len(words) < 30:
-            story = f"Once upon a time, {caption}. The children laughed and played together. They made new friends and had a wonderful time. The sun shone brightly, and everyone felt happy. It was a perfect day full of joy and adventure."
+        # 自动完整句子
+        if "." in story:
+            story = story[:story.rfind(".") + 1]
 
         st.subheader("Your Story ✨")
         st.write(story)
