@@ -1,7 +1,7 @@
 # ISOM5240 Individual Assignment
 # Storytelling Application for 3-10 year-old children
 import streamlit as st
-from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
+from transformers import pipeline
 from gtts import gTTS
 from PIL import Image
 
@@ -14,14 +14,9 @@ st.write("Upload a picture, and I will create a short story for you!")
 # ----------------------
 @st.cache_resource
 def load_models():
-    # Image captioning (Hugging Face standard)
     captioner = pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
-
-    # Use a small, stable model that WILL follow image content
-    tokenizer = AutoTokenizer.from_pretrained("facebook/opt-125m")
-    model = AutoModelForCausalLM.from_pretrained("facebook/opt-125m")
-    story_gen = pipeline("text-generation", model=model, tokenizer=tokenizer)
-    return captioner, story_gen
+    story_generator = pipeline("text-generation", model="distilgpt2")
+    return captioner, story_generator
 
 captioner, story_generator = load_models()
 
@@ -40,29 +35,29 @@ if uploaded:
         st.info(f"Image Caption: {caption}")
 
     # ----------------------
-    # 2. Generate story (STRICTLY related to picture, 50-100 words)
+    # 2. Generate story (SIMPLE, SHORT PROMPT — NO MORE RAMBLING!)
     # ----------------------
     with st.spinner("Writing story..."):
-        prompt = f"""Write a short, happy, simple story for young children based on this scene: {caption}
-The story must be 50 to 100 words, related to the image, and have a clear ending.
-"""
+
+        # ✅ YOUR FIX: Super simple prompt — model will NOT go off topic
+        prompt = f"Write a simple, happy 50-100 word story for kids: {caption}"
 
         story = story_generator(
             prompt,
             max_new_tokens=80,
             temperature=0.6,
             repetition_penalty=1.2,
+            pad_token_id=50256,
             do_sample=True
         )[0]["generated_text"]
 
-        # Clean prompt
         story = story.replace(prompt, "").strip()
 
-        # Ensure complete sentence
+        # Ensure clean ending
         if "." in story:
             story = story[:story.rfind(".") + 1]
 
-        # Keep 50-100 words
+        # Keep 50–100 words
         words = story.split()
         if len(words) > 100:
             story = " ".join(words[:100])
