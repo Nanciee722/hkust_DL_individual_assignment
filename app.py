@@ -13,7 +13,7 @@ st.write("Upload an image, and I will make a lovely story for you!")
 # Load models (cache to avoid reloading)
 @st.cache_resource
 def load_models():
-    captioner = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
+    captioner = pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
     story_gen = pipeline("text-generation", model="distilgpt2", max_new_tokens=150)
     return captioner, story_gen
 
