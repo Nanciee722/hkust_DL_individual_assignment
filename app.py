@@ -82,11 +82,10 @@ st.markdown(
 @st.cache_resource(show_spinner="Loading image captioning model…")
 def load_captioner():
     """
-    Load the image-text-to-text pipeline using BLIP.
-    This task type correctly accepts a PIL Image in newer transformers versions.
+    Load the image-to-text pipeline using BLIP.
     """
     return pipeline(
-        "image-text-to-text",
+        "image-to-text",
         model="Salesforce/blip-image-captioning-base",
     )
 
@@ -113,12 +112,12 @@ def generate_caption(image: Image.Image, captioner) -> str:
 
     Args:
         image:     PIL Image object uploaded by the user.
-        captioner: Hugging Face image-text-to-text pipeline.
+        captioner: Hugging Face image-to-text pipeline.
 
     Returns:
         A short caption string describing the image.
     """
-    results = captioner({"image": image, "text": "Describe this image:"}, generate_kwargs={"max_new_tokens": 50})
+    results = captioner(image)
     caption = results[0]["generated_text"]
     return caption
 
