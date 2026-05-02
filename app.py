@@ -28,7 +28,7 @@ def text2story(text):
     )
     
     # 超明确的prompt：直接告诉模型“写一个短故事”，不玩花样
-    prompt = f"Tell a short story about: {text}. The kids are having fun."
+    prompt = f" Once upon the time, {text}."
     
     story = story_model(
         prompt,
