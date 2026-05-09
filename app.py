@@ -1,4 +1,4 @@
-# Program overview: A storytelling app for kids aged 3-10.
+# Program overview: A storytelling app for kids aged from 3 to 10.
 # Functions included: Uploading an image -> generating a story -> playing the audio
 
 # Import
