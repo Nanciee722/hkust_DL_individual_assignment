@@ -49,6 +49,7 @@ def text2story(text):
 
 # text-to-audio
 def text2audio(story_text):
+    """Convert the story text into speech audio."""
     audio_pipe = pipeline("text-to-audio", model="Matthijs/mms-tts-eng")
     audio_data = audio_pipe(story_text)
     return audio_data
