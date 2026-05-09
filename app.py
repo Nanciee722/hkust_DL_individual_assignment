@@ -96,4 +96,7 @@ if uploaded_file is not None:
 
     # Success mark
     st.markdown("---")
-    st.markdown("Done! Hope you like the story 😊")
+    st.markdown(
+    '<img src="https://img.icons8.com/?size=100&id=26148&format=png&color=000000" width="24" style="vertical-align:middle;"> Done! Hope you like the story',
+    unsafe_allow_html=True
+)
