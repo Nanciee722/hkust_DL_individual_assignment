@@ -1,7 +1,5 @@
 streamlit
 transformers<5.0.0
 torch
-torchvision
 pillow
-gTTS
-accelerate
+sentencepiece
