@@ -1,97 +1,158 @@
-# ISOM5240 Individual Assignment
-# Storytelling Application for 3-10 year-old kids
-import streamlit as st
-from transformers import pipeline
-from gtts import gTTS
-from PIL import Image
+# Program title: Storytelling App
+# Description: A storytelling app for kids aged 3-10.
+#              Upload an image -> generate a story -> listen to it!
 
-# --------------------------
-# function part
-# --------------------------
+# Import part
+import re
+import streamlit as st
+from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
+
+# ============================================================
+# Safety: Prohibited words not suitable for kids aged 3-10
+# ============================================================
+PROHIBITED_WORDS = [
+    "kill", "killed", "murder", "blood", "death", "dead", "die", "died",
+    "weapon", "gun", "knife", "sword", "fight", "attack", "war", "bomb",
+    "shoot", "shot", "violent", "violence", "destroy", "evil",
+    "alcohol", "beer", "wine", "whiskey", "vodka", "drunk",
+    "smoke", "smoking", "cigarette", "tobacco", "drug", "drugs",
+    "horror", "scary", "terrifying", "nightmare", "ghost", "demon",
+    "devil", "hell", "zombie", "scream", "creepy", "haunted",
+    "hate", "stupid", "ugly", "dumb", "idiot",
+    "steal", "thief", "crime", "prison", "jail",
+    "bully", "cruel", "abuse", "poison", "toxic",
+    "sexy", "naked", "gambling", "casino",
+]
+
+SAFE_REPLACEMENTS = {
+    "kill": "stop", "killed": "stopped", "murder": "trouble",
+    "death": "nap", "dead": "sleeping", "die": "rest", "died": "rested",
+    "fight": "play", "attack": "surprise", "war": "game",
+    "blood": "red paint", "evil": "naughty",
+    "scary": "surprising", "ghost": "friendly spirit",
+    "smoke": "cloud", "smoking": "making clouds",
+    "drunk": "sleepy", "gun": "toy", "knife": "spoon",
+    "sword": "magic wand", "poison": "juice", "bomb": "balloon",
+    "beer": "apple juice", "wine": "grape juice", "alcohol": "fizzy drink",
+    "cigarette": "lollipop", "tobacco": "candy",
+    "hell": "oh my", "devil": "little imp", "demon": "little imp",
+    "zombie": "sleepyhead", "nightmare": "funny dream",
+    "prison": "time-out room", "jail": "time-out room",
+    "hate": "dislike", "stupid": "silly", "ugly": "different",
+    "bully": "grumpy friend", "cruel": "unkind",
+    "scary": "surprising", "scream": "shout",
+}
+
+
+def check_and_clean(text):
+    """Check for prohibited words and replace them with safe alternatives."""
+    cleaned = text
+    for bad_word, good_word in SAFE_REPLACEMENTS.items():
+        pattern = re.compile(r'\b' + re.escape(bad_word) + r'\b', re.IGNORECASE)
+        cleaned = pattern.sub(good_word, cleaned)
+    return cleaned
+
+
+# ============================================================
+# Function part
+# ============================================================
 
 # img2text
+# Model: https://huggingface.co/Salesforce/blip-image-captioning-base
 def img2text(url):
+    """Generate a caption from the uploaded image."""
     image_to_text_model = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
     text = image_to_text_model(url)[0]["generated_text"]
-    # 去掉illustration这个词，减少模型误解
-    text = text.replace("illustration", "scene")
     return text
 
-# text2story (Fixed: stable, on-topic, 50-100 words)
+
+# text2story
+# Model: https://huggingface.co/roneneldan/TinyStories-33M
 def text2story(text):
-    story_model = pipeline(
-        "text-generation",
-        model="distilgpt2",
-        temperature=0.4,          # 降低脑洞，减少奇怪句子
-        repetition_penalty=1.3,  # 强制惩罚重复/无关内容
-        pad_token_id=50256
+    """Generate a kid-friendly short story based on the image caption."""
+    model = AutoModelForCausalLM.from_pretrained("roneneldan/TinyStories-33M")
+    tokenizer = AutoTokenizer.from_pretrained("EleutherAI/gpt-neo-125M")
+
+    # Prompt designed for safe, fun, kid-friendly stories
+    prompt = (
+        f"Once upon a time, there was {text}. "
+        f"It was a bright sunny day and everyone was happy. "
     )
-    
-    # 超明确的prompt：直接告诉模型“写一个短故事”，不玩花样
-    prompt = f" Once upon the time, {text}."
-    
-    story = story_model(
-        prompt,
-        max_new_tokens=70,       # 控制续写长度，避免越写越歪
-        do_sample=True
-    )[0]["generated_text"]
 
-    # 只保留模型续写的部分，去掉prompt
-    story = story.replace(prompt, "").strip()
+    input_ids = tokenizer.encode(prompt, return_tensors="pt")
+    output = model.generate(
+        input_ids,
+        max_length=150,
+        num_beams=1,
+        do_sample=True,
+        temperature=0.7,
+        top_p=0.9,
+    )
+    story_text = tokenizer.decode(output[0], skip_special_tokens=True)
 
-    # 截断到第一个完整句子，杜绝奇怪续写
-    if "." in story:
-        story = story[:story.find(".") + 1]
-
-    # 拼接成完整故事，控制词数
-    full_story = prompt.split(".")[0] + ". " + story
-    words = full_story.split()
-    
-    # 词数控制：低于50词就加一句场景相关的结尾，高于100词就截断
-    if len(words) < 50:
-        full_story += " Everyone laughed and played happily under the sunny sky."
+    # Trim to 50-100 words
+    words = story_text.split()
     if len(words) > 100:
-        full_story = " ".join(words[:100])
-        if "." in full_story:
-            full_story = full_story[:full_story.rfind(".") + 1]
+        story_text = " ".join(words[:100])
+        if "." in story_text:
+            story_text = story_text[:story_text.rfind(".") + 1]
+        else:
+            story_text += "."
 
-    return full_story
+    # Safety filter: clean any prohibited words
+    story_text = check_and_clean(story_text)
+
+    return story_text
+
 
 # text2audio
+# Model: https://huggingface.co/Matthijs/mms-tts-eng
 def text2audio(story_text):
-    tts = gTTS(text=story_text, lang="en")
-    tts.save("story.mp3")
-    
-    with open("story.mp3", "rb") as f:
-        audio_data = f.read()
-    
+    """Convert the story text into speech audio."""
+    audio_pipe = pipeline("text-to-audio", model="Matthijs/mms-tts-eng")
+    audio_data = audio_pipe(story_text)
     return audio_data
 
-# --------------------------
-# main part
-# --------------------------
-st.set_page_config(page_title="Kids Story App", page_icon="📖")
-st.title("📖 Image Storytelling for Kids")
-st.write("Upload any image to generate a fun story!")
 
-uploaded_img = st.file_uploader("Upload your image", type=["jpg", "jpeg", "png"])
+# ============================================================
+# Main part
+# ============================================================
+st.set_page_config(page_title="Your Image to Audio Story", page_icon="🦜")
+st.header("🦜 Turn Your Image to Audio Story")
+st.markdown("A fun storytelling app for kids! Upload a picture and hear a story!")
 
-if uploaded_img is not None:
-    image = Image.open(uploaded_img)
-    st.image(image, caption="Your Image", use_column_width=True)
+uploaded_file = st.file_uploader("Select an Image...", type=["jpg", "jpeg", "png"])
 
-    # Run functions
-    with st.spinner("Generating caption..."):
-        caption = img2text(image)
-        st.info(f"Image Caption: {caption}")
+if uploaded_file is not None:
+    # Save file locally
+    bytes_data = uploaded_file.getvalue()
+    with open(uploaded_file.name, "wb") as file:
+        file.write(bytes_data)
 
-    with st.spinner("Generating story..."):
-        story = text2story(caption)
-        st.subheader("Your Story ✨")
-        st.write(story)
+    st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
 
-    with st.spinner("Generating audio..."):
-        audio = text2audio(story)
-        st.audio(audio, format="audio/mp3")
+    # Stage 1: Image to Text
+    st.text('Processing img2text...')
+    scenario = img2text(uploaded_file.name)
+    # Clean the caption before showing it (e.g. "smoking" -> "making clouds")
+    scenario = check_and_clean(scenario)
+    st.write(f"**Scenario:** {scenario}")
 
-    st.success("All done! 🎉")
+    # Stage 2: Text to Story
+    st.text('Generating a story...')
+    story = text2story(scenario)
+    st.write(f"**Story:** {story}")
+
+    # Stage 3: Story to Audio
+    st.text('Generating audio data...')
+    audio_data = text2audio(story)
+
+    # Play button
+    if st.button("Play Audio"):
+        audio_array = audio_data["audio"]
+        sample_rate = audio_data["sampling_rate"]
+        st.audio(audio_array, sample_rate=sample_rate)
+
+    # Encourage trying another image
+    st.markdown("---")
+    st.markdown("🔄 **Want another story? Upload a new image above!**")
