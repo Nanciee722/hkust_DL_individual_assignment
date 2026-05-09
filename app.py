@@ -3,55 +3,8 @@
 #              Upload an image -> generate a story -> listen to it!
 
 # Import part
-import re
 import streamlit as st
 from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
-
-# ============================================================
-# Safety: Prohibited words not suitable for kids aged 3-10
-# ============================================================
-PROHIBITED_WORDS = [
-    "kill", "killed", "murder", "blood", "death", "dead", "die", "died",
-    "weapon", "gun", "knife", "sword", "fight", "attack", "war", "bomb",
-    "shoot", "shot", "violent", "violence", "destroy", "evil",
-    "alcohol", "beer", "wine", "whiskey", "vodka", "drunk",
-    "smoke", "smoking", "cigarette", "tobacco", "drug", "drugs",
-    "horror", "scary", "terrifying", "nightmare", "ghost", "demon",
-    "devil", "hell", "zombie", "scream", "creepy", "haunted",
-    "hate", "stupid", "ugly", "dumb", "idiot",
-    "steal", "thief", "crime", "prison", "jail",
-    "bully", "cruel", "abuse", "poison", "toxic",
-    "sexy", "naked", "gambling", "casino",
-]
-
-SAFE_REPLACEMENTS = {
-    "kill": "stop", "killed": "stopped", "murder": "trouble",
-    "death": "nap", "dead": "sleeping", "die": "rest", "died": "rested",
-    "fight": "play", "attack": "surprise", "war": "game",
-    "blood": "red paint", "evil": "naughty",
-    "scary": "surprising", "ghost": "friendly spirit",
-    "smoke": "cloud", "smoking": "making clouds",
-    "drunk": "sleepy", "gun": "toy", "knife": "spoon",
-    "sword": "magic wand", "poison": "juice", "bomb": "balloon",
-    "beer": "apple juice", "wine": "grape juice", "alcohol": "fizzy drink",
-    "cigarette": "lollipop", "tobacco": "candy",
-    "hell": "oh my", "devil": "little imp", "demon": "little imp",
-    "zombie": "sleepyhead", "nightmare": "funny dream",
-    "prison": "time-out room", "jail": "time-out room",
-    "hate": "dislike", "stupid": "silly", "ugly": "different",
-    "bully": "grumpy friend", "cruel": "unkind",
-    "scary": "surprising", "scream": "shout",
-}
-
-
-def check_and_clean(text):
-    """Check for prohibited words and replace them with safe alternatives."""
-    cleaned = text
-    for bad_word, good_word in SAFE_REPLACEMENTS.items():
-        pattern = re.compile(r'\b' + re.escape(bad_word) + r'\b', re.IGNORECASE)
-        cleaned = pattern.sub(good_word, cleaned)
-    return cleaned
-
 
 # ============================================================
 # Function part
@@ -99,9 +52,6 @@ def text2story(text):
         else:
             story_text += "."
 
-    # Safety filter: clean any prohibited words
-    story_text = check_and_clean(story_text)
-
     return story_text
 
 
@@ -134,8 +84,6 @@ if uploaded_file is not None:
     # Stage 1: Image to Text
     st.text('Processing img2text...')
     scenario = img2text(uploaded_file.name)
-    # Clean the caption before showing it (e.g. "smoking" -> "making clouds")
-    scenario = check_and_clean(scenario)
     st.write(f"**Scenario:** {scenario}")
 
     # Stage 2: Text to Story
