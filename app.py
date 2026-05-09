@@ -69,17 +69,14 @@ if uploaded_file is not None:
     st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
 
     # Stage 1: Image to Text
-    st.text('Processing img2text...')
     scenario = img2text(uploaded_file.name)
     st.write(f"**Scenario:** {scenario}")
 
     # Stage 2: Text to Story
-    st.text('Generating a story...')
     story = text2story(scenario)
     st.write(f"**Story:** {story}")
 
     # Stage 3: Story to Audio
-    st.text('Generating audio data...')
     audio_data = text2audio(story)
 
     # Play button
