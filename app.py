@@ -68,7 +68,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-uploaded_file = st.file_uploader("Select an Image...", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Select an Image 🖼️ ...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     bytes_data = uploaded_file.getvalue()
