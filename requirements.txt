@@ -2,4 +2,3 @@ streamlit
 transformers<5.0.0
 torch
 pillow
-sentencepiece
