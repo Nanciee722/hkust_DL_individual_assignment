@@ -98,6 +98,6 @@ if uploaded_file is not None:
     st.markdown("---")
     st.markdown(
     'Done! Hope you like the story '
-    '<img src="https://img.icons8.com/?size=100&id=26148&format=png&color=000000" width="24" style="vertical-align:middle;">',
+    '<img src="https://img.icons8.com/?size=100&id=26148&format=png&color=000000" width="40" style="vertical-align:middle;">',
     unsafe_allow_html=True
 )
