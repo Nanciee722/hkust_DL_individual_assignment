@@ -22,7 +22,7 @@ def text2story(text):
     # Prompt designed for safe, fun, kid-friendly stories
     prompt = (
         f"Once upon a time, there was {text}. "
-        f"It was a bright sunny day and everyone was happy. "
+        f"It was a lovely day, and everyone felt joyful. "
     )
 
     input_ids = tokenizer.encode(prompt, return_tensors="pt")
