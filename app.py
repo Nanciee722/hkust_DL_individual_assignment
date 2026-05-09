@@ -62,6 +62,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 st.write("Upload an image, and I will make a lovely story for you!")
+st.markdown(
+    ':material/upload_file: Upload an image, and I will make a lovely story for you!',
+    unsafe_allow_html=True
+)
 
 uploaded_file = st.file_uploader("Select an Image...", type=["jpg", "jpeg", "png"])
 
