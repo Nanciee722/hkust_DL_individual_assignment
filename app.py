@@ -57,8 +57,9 @@ def text2audio(story_text):
 # Main part
 st.set_page_config(page_title="Kids Story App", page_icon="https://img.icons8.com/?size=100&id=jfFu3i8zJXfN&format=png&color=000000")
 st.markdown(
-    '<img src="https://img.icons8.com/?size=100&id=LlgB5a8aAr0G&format=png&color=000000" width="80"> '
-    '<span style="font-size:28px; font-weight:bold;">Image Storytelling for Kids</span>',
+    '<img src="https://img.icons8.com/?size=100&id=LlgB5a8aAr0G&format=png&color=000000" width="50" style="vertical-align:middle;"> '
+    '<span style="font-size:28px; font-weight:bold; vertical-align:middle;">Image Storytelling for Kids</span> '
+    '<img src="https://img.icons8.com/?size=100&id=LlgB5a8aAr0G&format=png&color=000000" width="50" style="vertical-align:middle;">',
     unsafe_allow_html=True
 )
 st.markdown(
