@@ -63,7 +63,8 @@ st.markdown(
 )
 st.write("Upload an image, and I will make a lovely story for you!")
 st.markdown(
-    ':material/upload_file: Upload an image, and I will make a lovely story for you!',
+    '<img src="https://img.icons8.com/?size=100&id=rQHPcf1HLSWR&format=png&color=000000" width="25" style="vertical-align: middle;"> '
+    'Upload an image, and I will make a lovely story for you!',
     unsafe_allow_html=True
 )
 
