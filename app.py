@@ -55,7 +55,7 @@ def text2audio(story_text):
     return audio_data
 
 # Main part
-st.set_page_config(page_title="Kids Story App", page_icon="📖")
+st.set_page_config(page_title="Kids Story App", page_icon="https://img.icons8.com/?size=100&id=jfFu3i8zJXfN&format=png&color=000000")
 st.title("📖 Image Storytelling for Kids")
 st.write("Upload an image, and I will make a lovely story for you!")
 
