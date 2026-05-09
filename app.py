@@ -61,7 +61,6 @@ st.markdown(
     '<span style="font-size:28px; font-weight:bold;">Image Storytelling for Kids</span>',
     unsafe_allow_html=True
 )
-st.write("Upload an image, and I will make a lovely story for you!")
 st.markdown(
     '<img src="https://img.icons8.com/?size=100&id=rQHPcf1HLSWR&format=png&color=000000" width="25" style="vertical-align: middle;"> '
     'Upload an image, and I will make a lovely story for you!',
