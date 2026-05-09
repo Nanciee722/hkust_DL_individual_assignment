@@ -1,26 +1,19 @@
-# Program title: Storytelling App
-# Description: A storytelling app for kids aged 3-10.
-#              Upload an image -> generate a story -> listen to it!
+# Program overview: A storytelling app for kids aged 3-10.
+# Functions included: Uploading an image -> generating a story -> playing the audio
 
-# Import part
+# Import
 import streamlit as st
 from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
 
-# ============================================================
-# Function part
-# ============================================================
-
-# img2text
-# Model: https://huggingface.co/Salesforce/blip-image-captioning-base
+# Main Functions
+# image-to-text
 def img2text(url):
     """Generate a caption from the uploaded image."""
     image_to_text_model = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
     text = image_to_text_model(url)[0]["generated_text"]
     return text
 
-
-# text2story
-# Model: https://huggingface.co/roneneldan/TinyStories-33M
+# text-to-story
 def text2story(text):
     """Generate a kid-friendly short story based on the image caption."""
     model = AutoModelForCausalLM.from_pretrained("roneneldan/TinyStories-33M")
@@ -43,7 +36,7 @@ def text2story(text):
     )
     story_text = tokenizer.decode(output[0], skip_special_tokens=True)
 
-    # Trim to 50-100 words
+    # limit to 50-100 words
     words = story_text.split()
     if len(words) > 100:
         story_text = " ".join(words[:100])
@@ -54,22 +47,17 @@ def text2story(text):
 
     return story_text
 
-
-# text2audio
-# Model: https://huggingface.co/Matthijs/mms-tts-eng
+# text-to-audio
 def text2audio(story_text):
     """Convert the story text into speech audio."""
     audio_pipe = pipeline("text-to-audio", model="Matthijs/mms-tts-eng")
     audio_data = audio_pipe(story_text)
     return audio_data
 
-
-# ============================================================
 # Main part
-# ============================================================
-st.set_page_config(page_title="Your Image to Audio Story", page_icon="🦜")
-st.header("🦜 Turn Your Image to Audio Story")
-st.markdown("A fun storytelling app for kids! Upload a picture and hear a story!")
+st.set_page_config(page_title="Kids Story App", page_icon="📖")
+st.title("📖 Image Storytelling for Kids")
+st.write("Upload an image, and I will make a lovely story for you!")
 
 uploaded_file = st.file_uploader("Select an Image...", type=["jpg", "jpeg", "png"])
 
