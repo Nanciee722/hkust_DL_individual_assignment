@@ -101,6 +101,6 @@ if uploaded_file is not None:
         sample_rate = audio_data["sampling_rate"]
         st.audio(audio_array, sample_rate=sample_rate)
 
-    # Encourage trying another image
+    # Success mark
     st.markdown("---")
-    st.markdown("🔄 **Want another story? Upload a new image above!**")
+    st.markdown("Done! Hope you like the story 😊")
